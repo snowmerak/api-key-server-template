@@ -17,7 +17,11 @@ type SaveOption struct {
 }
 
 type Store interface {
-	Load(ctx context.Context, namespace string, key string) (*StoreData, error)
+	ReadOnlyStore
 	Save(ctx context.Context, namespace string, key string, data *StoreData, option *SaveOption) error
 	Delete(ctx context.Context, namespace string, key string) error
+}
+
+type ReadOnlyStore interface {
+	Load(ctx context.Context, namespace string, key string) (*StoreData, error)
 }
