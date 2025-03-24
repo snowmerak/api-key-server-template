@@ -12,10 +12,11 @@ import (
 )
 
 const createApiKey = `-- name: CreateApiKey :one
-INSERT INTO apikeys (api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
+INSERT INTO apikeys (namespace, api_key, owner, service, permissions, payload, expired, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
 `
 
 type CreateApiKeyParams struct {
+	Namespace   string
 	ApiKey      string
 	Owner       string
 	Service     string
@@ -23,12 +24,11 @@ type CreateApiKeyParams struct {
 	Payload     []byte
 	Expired     pgtype.Bool
 	ExpiresAt   pgtype.Timestamptz
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
 }
 
 func (q *Queries) CreateApiKey(ctx context.Context, arg CreateApiKeyParams) (Apikey, error) {
 	row := q.db.QueryRow(ctx, createApiKey,
+		arg.Namespace,
 		arg.ApiKey,
 		arg.Owner,
 		arg.Service,
@@ -36,12 +36,11 @@ func (q *Queries) CreateApiKey(ctx context.Context, arg CreateApiKeyParams) (Api
 		arg.Payload,
 		arg.Expired,
 		arg.ExpiresAt,
-		arg.CreatedAt,
-		arg.UpdatedAt,
 	)
 	var i Apikey
 	err := row.Scan(
 		&i.ApiKey,
+		&i.Namespace,
 		&i.Owner,
 		&i.Service,
 		&i.Permissions,
@@ -55,43 +54,58 @@ func (q *Queries) CreateApiKey(ctx context.Context, arg CreateApiKeyParams) (Api
 }
 
 const deleteApiKey = `-- name: DeleteApiKey :exec
-DELETE FROM apikeys WHERE api_key = $1
+DELETE FROM apikeys WHERE namespace = $1 AND api_key = $2
 `
 
-func (q *Queries) DeleteApiKey(ctx context.Context, apiKey string) error {
-	_, err := q.db.Exec(ctx, deleteApiKey, apiKey)
+type DeleteApiKeyParams struct {
+	Namespace string
+	ApiKey    string
+}
+
+func (q *Queries) DeleteApiKey(ctx context.Context, arg DeleteApiKeyParams) error {
+	_, err := q.db.Exec(ctx, deleteApiKey, arg.Namespace, arg.ApiKey)
 	return err
 }
 
 const deleteApiKeysByOwner = `-- name: DeleteApiKeysByOwner :exec
-DELETE FROM apikeys WHERE owner = $1
+DELETE FROM apikeys WHERE namespace = $1 AND owner = $2
 `
 
-func (q *Queries) DeleteApiKeysByOwner(ctx context.Context, owner string) error {
-	_, err := q.db.Exec(ctx, deleteApiKeysByOwner, owner)
+type DeleteApiKeysByOwnerParams struct {
+	Namespace string
+	Owner     string
+}
+
+func (q *Queries) DeleteApiKeysByOwner(ctx context.Context, arg DeleteApiKeysByOwnerParams) error {
+	_, err := q.db.Exec(ctx, deleteApiKeysByOwner, arg.Namespace, arg.Owner)
 	return err
 }
 
 const deleteApiKeysByService = `-- name: DeleteApiKeysByService :exec
-DELETE FROM apikeys WHERE service = $1
+DELETE FROM apikeys WHERE namespace = $1 AND service = $2
 `
 
-func (q *Queries) DeleteApiKeysByService(ctx context.Context, service string) error {
-	_, err := q.db.Exec(ctx, deleteApiKeysByService, service)
+type DeleteApiKeysByServiceParams struct {
+	Namespace string
+	Service   string
+}
+
+func (q *Queries) DeleteApiKeysByService(ctx context.Context, arg DeleteApiKeysByServiceParams) error {
+	_, err := q.db.Exec(ctx, deleteApiKeysByService, arg.Namespace, arg.Service)
 	return err
 }
 
 const deleteExpiredApiKeys = `-- name: DeleteExpiredApiKeys :exec
-DELETE FROM apikeys WHERE expired = TRUE
+DELETE FROM apikeys WHERE namespace = $1 AND expired = TRUE
 `
 
-func (q *Queries) DeleteExpiredApiKeys(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, deleteExpiredApiKeys)
+func (q *Queries) DeleteExpiredApiKeys(ctx context.Context, namespace string) error {
+	_, err := q.db.Exec(ctx, deleteExpiredApiKeys, namespace)
 	return err
 }
 
 const expireApiKey = `-- name: ExpireApiKey :one
-UPDATE apikeys SET expired = TRUE WHERE api_key = $1 RETURNING api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
+UPDATE apikeys SET expired = TRUE AND updated_at = now() WHERE api_key = $1 RETURNING api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
 `
 
 func (q *Queries) ExpireApiKey(ctx context.Context, apiKey string) (Apikey, error) {
@@ -99,6 +113,7 @@ func (q *Queries) ExpireApiKey(ctx context.Context, apiKey string) (Apikey, erro
 	var i Apikey
 	err := row.Scan(
 		&i.ApiKey,
+		&i.Namespace,
 		&i.Owner,
 		&i.Service,
 		&i.Permissions,
@@ -112,7 +127,7 @@ func (q *Queries) ExpireApiKey(ctx context.Context, apiKey string) (Apikey, erro
 }
 
 const expireApiKeysByOwner = `-- name: ExpireApiKeysByOwner :many
-UPDATE apikeys SET expired = TRUE WHERE owner = $1 RETURNING api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
+UPDATE apikeys SET expired = TRUE AND updated_at = now() WHERE owner = $1 RETURNING api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
 `
 
 func (q *Queries) ExpireApiKeysByOwner(ctx context.Context, owner string) ([]Apikey, error) {
@@ -126,6 +141,7 @@ func (q *Queries) ExpireApiKeysByOwner(ctx context.Context, owner string) ([]Api
 		var i Apikey
 		if err := rows.Scan(
 			&i.ApiKey,
+			&i.Namespace,
 			&i.Owner,
 			&i.Service,
 			&i.Permissions,
@@ -146,7 +162,7 @@ func (q *Queries) ExpireApiKeysByOwner(ctx context.Context, owner string) ([]Api
 }
 
 const expireApiKeysByService = `-- name: ExpireApiKeysByService :many
-UPDATE apikeys SET expired = TRUE WHERE service = $1 RETURNING api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
+UPDATE apikeys SET expired = TRUE AND updated_at = now() WHERE service = $1 RETURNING api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
 `
 
 func (q *Queries) ExpireApiKeysByService(ctx context.Context, service string) ([]Apikey, error) {
@@ -160,6 +176,7 @@ func (q *Queries) ExpireApiKeysByService(ctx context.Context, service string) ([
 		var i Apikey
 		if err := rows.Scan(
 			&i.ApiKey,
+			&i.Namespace,
 			&i.Owner,
 			&i.Service,
 			&i.Permissions,
@@ -180,7 +197,7 @@ func (q *Queries) ExpireApiKeysByService(ctx context.Context, service string) ([
 }
 
 const expireExpiredApiKeys = `-- name: ExpireExpiredApiKeys :many
-UPDATE apikeys SET expired = TRUE WHERE expires_at < $1 RETURNING api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
+UPDATE apikeys SET expired = TRUE AND updated_at = now() WHERE expires_at < $1 RETURNING api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
 `
 
 func (q *Queries) ExpireExpiredApiKeys(ctx context.Context, expiresAt pgtype.Timestamptz) ([]Apikey, error) {
@@ -194,6 +211,7 @@ func (q *Queries) ExpireExpiredApiKeys(ctx context.Context, expiresAt pgtype.Tim
 		var i Apikey
 		if err := rows.Scan(
 			&i.ApiKey,
+			&i.Namespace,
 			&i.Owner,
 			&i.Service,
 			&i.Permissions,
@@ -214,14 +232,20 @@ func (q *Queries) ExpireExpiredApiKeys(ctx context.Context, expiresAt pgtype.Tim
 }
 
 const getApiKey = `-- name: GetApiKey :one
-SELECT api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at FROM apiKeys WHERE api_key = $1 AND expired = FALSE
+SELECT api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at FROM apiKeys WHERE namespace = $1 AND api_key = $2 AND expired = FALSE
 `
 
-func (q *Queries) GetApiKey(ctx context.Context, apiKey string) (Apikey, error) {
-	row := q.db.QueryRow(ctx, getApiKey, apiKey)
+type GetApiKeyParams struct {
+	Namespace string
+	ApiKey    string
+}
+
+func (q *Queries) GetApiKey(ctx context.Context, arg GetApiKeyParams) (Apikey, error) {
+	row := q.db.QueryRow(ctx, getApiKey, arg.Namespace, arg.ApiKey)
 	var i Apikey
 	err := row.Scan(
 		&i.ApiKey,
+		&i.Namespace,
 		&i.Owner,
 		&i.Service,
 		&i.Permissions,
@@ -235,11 +259,16 @@ func (q *Queries) GetApiKey(ctx context.Context, apiKey string) (Apikey, error) 
 }
 
 const getApiKeysByOwner = `-- name: GetApiKeysByOwner :many
-SELECT api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at FROM apiKeys WHERE owner = $1 AND expired = FALSE
+SELECT api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at FROM apiKeys WHERE namespace = $1 AND owner = $2 AND expired = FALSE
 `
 
-func (q *Queries) GetApiKeysByOwner(ctx context.Context, owner string) ([]Apikey, error) {
-	rows, err := q.db.Query(ctx, getApiKeysByOwner, owner)
+type GetApiKeysByOwnerParams struct {
+	Namespace string
+	Owner     string
+}
+
+func (q *Queries) GetApiKeysByOwner(ctx context.Context, arg GetApiKeysByOwnerParams) ([]Apikey, error) {
+	rows, err := q.db.Query(ctx, getApiKeysByOwner, arg.Namespace, arg.Owner)
 	if err != nil {
 		return nil, err
 	}
@@ -249,6 +278,7 @@ func (q *Queries) GetApiKeysByOwner(ctx context.Context, owner string) ([]Apikey
 		var i Apikey
 		if err := rows.Scan(
 			&i.ApiKey,
+			&i.Namespace,
 			&i.Owner,
 			&i.Service,
 			&i.Permissions,
@@ -269,11 +299,16 @@ func (q *Queries) GetApiKeysByOwner(ctx context.Context, owner string) ([]Apikey
 }
 
 const getApiKeysByService = `-- name: GetApiKeysByService :many
-SELECT api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at FROM apiKeys WHERE service = $1 AND expired = FALSE
+SELECT api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at FROM apiKeys WHERE namespace = $1 AND service = $2 AND expired = FALSE
 `
 
-func (q *Queries) GetApiKeysByService(ctx context.Context, service string) ([]Apikey, error) {
-	rows, err := q.db.Query(ctx, getApiKeysByService, service)
+type GetApiKeysByServiceParams struct {
+	Namespace string
+	Service   string
+}
+
+func (q *Queries) GetApiKeysByService(ctx context.Context, arg GetApiKeysByServiceParams) ([]Apikey, error) {
+	rows, err := q.db.Query(ctx, getApiKeysByService, arg.Namespace, arg.Service)
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +318,7 @@ func (q *Queries) GetApiKeysByService(ctx context.Context, service string) ([]Ap
 		var i Apikey
 		if err := rows.Scan(
 			&i.ApiKey,
+			&i.Namespace,
 			&i.Owner,
 			&i.Service,
 			&i.Permissions,
@@ -303,7 +339,7 @@ func (q *Queries) GetApiKeysByService(ctx context.Context, service string) ([]Ap
 }
 
 const updateApiKey = `-- name: UpdateApiKey :one
-UPDATE apikeys SET owner = $2, service = $3, permissions = $4, payload = $5, expired = $6, expires_at = $7, updated_at = $8 WHERE api_key = $1 RETURNING api_key, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
+UPDATE apikeys SET owner = $2, service = $3, permissions = $4, payload = $5, expired = $6, expires_at = $7, updated_at = now() WHERE api_key = $1 RETURNING api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
 `
 
 type UpdateApiKeyParams struct {
@@ -314,7 +350,6 @@ type UpdateApiKeyParams struct {
 	Payload     []byte
 	Expired     pgtype.Bool
 	ExpiresAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
 }
 
 func (q *Queries) UpdateApiKey(ctx context.Context, arg UpdateApiKeyParams) (Apikey, error) {
@@ -326,11 +361,11 @@ func (q *Queries) UpdateApiKey(ctx context.Context, arg UpdateApiKeyParams) (Api
 		arg.Payload,
 		arg.Expired,
 		arg.ExpiresAt,
-		arg.UpdatedAt,
 	)
 	var i Apikey
 	err := row.Scan(
 		&i.ApiKey,
+		&i.Namespace,
 		&i.Owner,
 		&i.Service,
 		&i.Permissions,

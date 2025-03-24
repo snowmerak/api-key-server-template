@@ -10,6 +10,7 @@ import (
 
 type Apikey struct {
 	ApiKey      string
+	Namespace   string
 	Owner       string
 	Service     string
 	Permissions string
