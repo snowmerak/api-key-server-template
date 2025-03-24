@@ -12,7 +12,7 @@ message AuthorizerRequest {
 message AuthorizedData {
   string owner = 1;
   string service = 2;
-  int64 permission = 3;
+  string permission = 3;
   bytes payload = 4;
 }
 
