@@ -9,6 +9,7 @@ tool (
 
 require (
 	github.com/jackc/pgx/v5 v5.7.2
+	github.com/nats-io/nats.go v1.39.1
 	github.com/valkey-io/valkey-go v1.0.56
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
@@ -83,6 +84,8 @@ require (
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
+	github.com/nats-io/nkeys v0.4.9 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/onsi/ginkgo/v2 v2.22.2 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
