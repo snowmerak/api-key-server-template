@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/snowmerak/api-key-server-template/pkg/client/postgres/queries"
+	"github.com/snowmerak/api-key-server-template/pkg/network/postgres/queries"
 )
 
 type Option struct {

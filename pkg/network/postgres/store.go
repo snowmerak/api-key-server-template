@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/snowmerak/api-key-server-template/lib/key"
-	"github.com/snowmerak/api-key-server-template/pkg/client/postgres/queries"
+	"github.com/snowmerak/api-key-server-template/pkg/network/postgres/queries"
 )
 
 const (
