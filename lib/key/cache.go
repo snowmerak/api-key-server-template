@@ -1,6 +1,9 @@
 package key
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type CacheData StoreData
 
@@ -9,7 +12,7 @@ type CacheOption struct {
 }
 
 type Cache interface {
-	Load(namespace string, key string) (*CacheData, error)
-	Save(namespace string, key string, data *CacheData, option *CacheOption) error
-	Delete(namespace string, key string) error
+	Load(ctx context.Context, namespace string, key string) (*CacheData, error)
+	Save(ctx context.Context, namespace string, key string, data *CacheData, option *CacheOption) error
+	Delete(ctx context.Context, namespace string, key string) error
 }

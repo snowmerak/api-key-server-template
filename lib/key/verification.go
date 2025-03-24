@@ -1,5 +1,7 @@
 package key
 
+import "context"
+
 type Verifier interface {
-	Verify(key string) bool
+	Verify(ctx context.Context, key string) bool
 }
