@@ -5,14 +5,15 @@ package api.authorizer.v1;
 option go_package = "api/authorizer/v1";
 
 message AuthorizerRequest {
-  string token = 1;
+  string namespace = 1;
+  string token = 2;
 }
 
 message AuthorizedData {
-  string Owner = 1;
-  string Service = 2;
-  int64 Permission = 3;
-  bytes Payload = 4;
+  string owner = 1;
+  string service = 2;
+  int64 permission = 3;
+  bytes payload = 4;
 }
 
 message Error {
