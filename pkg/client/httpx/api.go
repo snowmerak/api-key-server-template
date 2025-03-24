@@ -2,8 +2,12 @@ package httpx
 
 import (
 	"context"
+	"crypto/tls"
+	"io"
 	"log"
 	"net/http"
+
+	"google.golang.org/protobuf/proto"
 
 	v1 "github.com/snowmerak/api-key-server-template/gen/api/authorizer/v1"
 	"github.com/snowmerak/api-key-server-template/lib/api"
@@ -69,4 +73,37 @@ func (s *ApiServer) Reply(ctx context.Context, request *v1.AuthorizerRequest) *v
 			},
 		},
 	}
+}
+
+func (s *ApiServer) ListenAndServe(ctx context.Context, addr string, tlsConfig *tls.Config) error {
+	s.Server.handler.HandleFunc(DefaultAuthAPIRoute, func(writer http.ResponseWriter, request *http.Request) {
+		ctx := request.Context()
+		defer request.Body.Close()
+
+		data, err := io.ReadAll(request.Body)
+		if err != nil {
+			log.Printf("failed to read body: %v", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		req := &v1.AuthorizerRequest{}
+		if err := proto.Unmarshal(data, req); err != nil {
+			log.Printf("failed to unmarshal: %v", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		resp := s.Reply(ctx, req)
+		data, err = proto.Marshal(resp)
+		if err != nil {
+			log.Printf("failed to marshal: %v", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		writer.Write(data)
+	})
+
+	return s.ListenAndServe(ctx, addr, tlsConfig)
 }

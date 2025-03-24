@@ -8,7 +8,8 @@ import (
 )
 
 type Server struct {
-	server *http.Server
+	server  *http.Server
+	handler *http.ServeMux
 }
 
 func NewServer() *Server {
@@ -20,6 +21,7 @@ func NewServer() *Server {
 func (s *Server) ListenAndServe(ctx context.Context, addr string, tlsConfig *tls.Config) error {
 	s.server.Addr = addr
 	s.server.TLSConfig = tlsConfig
+	s.server.Handler = s.handler
 
 	if err := s.server.ListenAndServe(); err != nil {
 		return fmt.Errorf("ListenAndServe: %w", err)
