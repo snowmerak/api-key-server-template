@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package api.authorizer.v1;
+
+option go_package = "api/authorizer/v1";
+
+message AuthorizerRequest {
+  string token = 1;
+}
+
+message AuthorizedData {
+  string Owner = 1;
+  string Service = 2;
+  int64 Permission = 3;
+  bytes Payload = 4;
+}
+
+message Error {
+  int64 code = 1;
+  string message = 2;
+}
+
+message AuthorizerResponse {
+  oneof response {
+    AuthorizedData authorized_data = 1;
+    Error error = 2;
+  }
+}
+
+service Authorizer {
+  rpc Authorize(AuthorizerRequest) returns (AuthorizerResponse) {}
+}
