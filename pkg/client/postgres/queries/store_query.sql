@@ -8,7 +8,7 @@ SELECT * FROM apiKeys WHERE namespace = $1 AND owner = $2 AND expired = FALSE;
 SELECT * FROM apiKeys WHERE namespace = $1 AND service = $2 AND expired = FALSE;
 
 -- name: CreateApiKey :one
-INSERT INTO apikeys (namespace, api_key, owner, service, permissions, payload, expired, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;
+INSERT INTO apikeys (namespace, api_key, owner, service, permissions, payload, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
 
 -- name: UpdateApiKey :one
 UPDATE apikeys SET owner = $2, service = $3, permissions = $4, payload = $5, expired = $6, expires_at = $7, updated_at = now() WHERE api_key = $1 RETURNING *;

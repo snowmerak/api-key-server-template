@@ -12,7 +12,7 @@ import (
 )
 
 const createApiKey = `-- name: CreateApiKey :one
-INSERT INTO apikeys (namespace, api_key, owner, service, permissions, payload, expired, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
+INSERT INTO apikeys (namespace, api_key, owner, service, permissions, payload, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING api_key, namespace, owner, service, permissions, payload, expired, expires_at, created_at, updated_at
 `
 
 type CreateApiKeyParams struct {
@@ -22,7 +22,6 @@ type CreateApiKeyParams struct {
 	Service     string
 	Permissions string
 	Payload     []byte
-	Expired     pgtype.Bool
 	ExpiresAt   pgtype.Timestamptz
 }
 
@@ -34,7 +33,6 @@ func (q *Queries) CreateApiKey(ctx context.Context, arg CreateApiKeyParams) (Api
 		arg.Service,
 		arg.Permissions,
 		arg.Payload,
-		arg.Expired,
 		arg.ExpiresAt,
 	)
 	var i Apikey
