@@ -1,8 +1,10 @@
 package httpx
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -106,4 +108,26 @@ func (s *ApiServer) ListenAndServe(ctx context.Context, addr string, tlsConfig *
 	})
 
 	return s.ListenAndServe(ctx, addr, tlsConfig)
+}
+
+func (c *Client) Request(ctx context.Context, request *v1.AuthorizerRequest) (*v1.AuthorizerResponse, error) {
+	data, err := proto.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %v", err)
+	}
+
+	resp, err := c.client.Post(c.option.baseUrl+DefaultAuthAPIRoute, "application/json", bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to post request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	data, err = io.ReadAll(resp.Body)
+
+	result := &v1.AuthorizerResponse{}
+	if err := proto.Unmarshal(data, result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal: %v", err)
+	}
+
+	return result, nil
 }
